@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset = "utf-8">
-        <title> HW3 Part 2</title>
+        <title> HW3 Part 1</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.1/math.js></script>
         <style>
@@ -40,16 +40,18 @@
         let Ainv=generateAinv();                //generates the inverse of the matrix
         let grid=calculate();                   //calculates the implicit solution and stores it in grid
         let grid2=answer();                     //gets the exact solution and stores it in grid2
-       
+        
         function init()                         //initalizes elements
         {
             let linebreak = document.createElement("br");
             let prob = document.getElementById("problem");
 
             let probDescription = document.createElement("div");
-            probDescription.innerHTML="Solution to differential equation using Crank-Nicolson method and one point backward difference for du/dx";
+            probDescription.innerHTML="Solution to differential equation using Crank-Nicolson method and one point backwards difference for du/dx";
             prob.appendChild(probDescription);
             prob.appendChild(linebreak.cloneNode(true));
+
+        
 
             let deltaxlabel=document.createElement("label");                //adding text desciriptions 
             deltaxlabel.innerHTML="Delta X: ";
@@ -201,13 +203,13 @@
             let output=[];              
             let row1=[];
             row1.push(1);                       //first row is 1,0,0......
-            for(let i =1; i<xsteps; i++)        //fills first row with 0s
+            for(let i =1; i<xsteps+1; i++)        //fills first row with 0s
                 row1.push(0);
             
             output.push(row1);
 
             let zeros=0;                        //keeps track of the number of 0s 
-            for(let i=1; i<xsteps-1; i++)       //adds rows to the matrix
+            for(let i=1; i<xsteps; i++)       //adds rows to the matrix
             {
                 let row=[];
                 for(let j = 0; j<zeros; j++)     //adds 0s to the rows
@@ -218,18 +220,19 @@
                 row.push(r);                    //adds the coefficients
                 row.push(-2*r-1/deltat);
                 row.push(r);
-                while(row.length<xsteps)        //fills the rest of the rows with 0s
+                while(row.length<xsteps+1)        //fills the rest of the rows with 0s
                     row.push(0);
                 
                 output.push(row);               //adds the row to the matrix
             }
             let lastrow=[];                     //last row of the matrix
-            while(lastrow.length<xsteps-2)
+            while(lastrow.length<xsteps-1)
                 lastrow.push(0);
             lastrow.push(1/(1+deltax));         //Boundry Condition
             lastrow.push(-1);
             output.push(lastrow);
             
+            console.log(output);
             return math.inv(output);            //return the inverse of the matrix
         }
 
@@ -237,7 +240,7 @@
         {
             let grid=[];                        //2D array containing the values of U at all x and t
             let current=[];                     //array containing the values of U at the current timestep
-            for(let i =0; i<xsteps; i++)        //initialize current to boundry condition U(x,0)=e^-x
+            for(let i =0; i<xsteps+1; i++)        //initialize current to boundry condition U(x,0)=e^-x
                 current.push(Math.exp(-deltax*i));
 
             grid.push(current);                 //adds the first row to the grid
@@ -245,18 +248,18 @@
             for(let n =0; n<timesteps; n++)     //iterate through all the timesteps
             {    
                 let right = [];                 //array for the right vector
-                for(let i =0; i<xsteps; i++)    //loop that sets the values for the right vector 
+                for(let i =0; i<xsteps+1; i++)    //loop that sets the values for the right vector 
                 {
                     if(i==0)                    //x=0 boundry condition
                         right.push(Math.exp((n+1)*deltat)); 
-                    else if (i == xsteps-1)     //x=10 boundry condition
+                    else if (i == xsteps)     //x=10 boundry condition
                         right.push(0);
                     else        
                     {
                         temp1=current[i+1]*(-1/(2*deltax*deltax));      //n timestep, U(i+1) term
                         temp2=current[i]*(1-1/deltat+1/(deltax*deltax)+1/deltax);            //n timestep, U(i) term
                         temp3=current[i-1]*(-1/(deltax)-1/(2*deltax*deltax));     //n timestep, U(i-1) term
-                        right.push(temp1+temp2+temp3);          
+                        right.push(temp1+temp2+temp3);       
                     }
                 }
                 current = math.multiply(Ainv, right);  //calculates the value of U at the current timestep
@@ -295,7 +298,7 @@
 
             table.appendChild(firstrow);
 
-            for(let i=0; i<grid[grid.length-1].length-1; i++)
+            for(let i=0; i<grid[grid.length-1].length; i++)
             {
                 let row= document.createElement("tr");
                 let xval=document.createElement("td");
@@ -343,7 +346,7 @@
             nodelabel.classList.add("legend");
             secondrow.appendChild(nodelabel);
 
-            for(i=0; i<grid[0].length-1; i++)
+            for(i=0; i<grid[0].length; i++)
             {
                 let temp=document.createElement("td");
                 let temp2=document.createElement("td");
@@ -368,7 +371,7 @@
                 timenode.classList.add("legend");
                 row.appendChild(time);
                 row.appendChild(timenode);
-                for(b=0; b<grid[a].length-1; b++)
+                for(b=0; b<grid[a].length; b++)
                 {
                     let xBox=document.createElement("td");
                     xBox.innerHTML=(grid[a][b]).toFixed(4);
