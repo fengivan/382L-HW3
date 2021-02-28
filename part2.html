@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset = "utf-8">
-        <title> HW3 Part 1</title>
+        <title> HW3 Part 2</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.1/math.js></script>
         <style>
@@ -47,11 +47,9 @@
             let prob = document.getElementById("problem");
 
             let probDescription = document.createElement("div");
-            probDescription.innerHTML="Solution to differential equation using Crank-Nicolson method and three point central difference for du/dx";
+            probDescription.innerHTML="Solution to differential equation using Crank-Nicolson method and one point backward difference for du/dx";
             prob.appendChild(probDescription);
             prob.appendChild(linebreak.cloneNode(true));
-
-        
 
             let deltaxlabel=document.createElement("label");                //adding text desciriptions 
             deltaxlabel.innerHTML="Delta X: ";
@@ -255,9 +253,9 @@
                         right.push(0);
                     else        
                     {
-                        temp1=current[i+1]*(1/(2*deltax)-1/(2*deltax*deltax));      //n timestep, U(i+1) term
-                        temp2=current[i]*(1-1/deltat+1/(deltax*deltax));            //n timestep, U(i) term
-                        temp3=current[i-1]*(-1/(2*deltax)-1/(2*deltax*deltax));     //n timestep, U(i-1) term
+                        temp1=current[i+1]*(-1/(2*deltax*deltax));      //n timestep, U(i+1) term
+                        temp2=current[i]*(1-1/deltat+1/(deltax*deltax)+1/deltax);            //n timestep, U(i) term
+                        temp3=current[i-1]*(-1/(deltax)-1/(2*deltax*deltax));     //n timestep, U(i-1) term
                         right.push(temp1+temp2+temp3);          
                     }
                 }
