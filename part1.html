@@ -188,7 +188,7 @@
             return grid2;
         }
 
-        function solvematrix(x)                 //solves for U at the next timestep, given U at the current timestep
+        function solvematrix(x)         //solves for U at the next timestep, given U at the current timestep
         {
             let c = [0];                        //create arrays for the 3 diagonals
             let b = [1];
@@ -204,7 +204,7 @@
                         b[i]=-1;
                     }
             }
-            return thomasalgo(a, b, c, x, x.length);    //calls the thomas algorithm tridiagonal matrix solver and returns the solution
+            return thomasalgo(a, b, c, x, x.length);    //calls solver and returns the solution
         }
 
         function thomasalgo(a, b, c, d, n)
@@ -298,7 +298,7 @@
 
             table.appendChild(firstrow);
 
-            for(let i=0; i<grid[grid.length-1].length; i++)
+            for(let i=0; i<grid[grid.length-1].length; i=i+10)
             {
                 let row= document.createElement("tr");
                 let xval=document.createElement("td");
