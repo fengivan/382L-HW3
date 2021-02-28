@@ -1,0 +1,383 @@
+<html>
+    <head>
+        <meta charset = "utf-8">
+        <title> HW3 Part 1</title>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.1/math.js></script>
+        <style>
+            table, th, td 
+            {
+                border: 2px solid black;
+            }
+            .legend
+            {
+                font-weight:bold;
+            }
+            table 
+            {
+                width: 25%;
+                border-collapse: collapse;
+            }
+            #chart_div
+            {
+                width:1600px;
+                height:1000px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="problem">  </div>
+    </body>
+
+    <script>
+        init();
+
+        let deltax=parseFloat(document.getElementById("deltax").value);
+        let deltat=parseFloat(document.getElementById("deltat").value);
+        let timesteps=Math.round(.85/deltat);
+        let xsteps=Math.round(10/deltax);
+        let Ainv=generateAinv();                //generates the inverse of the matrix
+        let grid=calculate();                   //calculates the implicit solution and stores it in grid
+        let grid2=answer();                     //gets the exact solution and stores it in grid2
+       
+        function init()                         //initalizes elements
+        {
+            let linebreak = document.createElement("br");
+            let prob = document.getElementById("problem");
+
+            let probDescription = document.createElement("div");
+            probDescription.innerHTML="Solution to differential equation using Crank-Nicolson and three point central difference method";
+            prob.appendChild(probDescription);
+            prob.appendChild(linebreak.cloneNode(true));
+
+            let deltaxlabel=document.createElement("label");                //adding text desciriptions 
+            deltaxlabel.innerHTML="Delta X: ";
+            let deltaxinput=document.createElement("input");
+            deltaxinput.setAttribute("type", "text");
+            deltaxinput.id="deltax";
+            deltaxinput.value=1/40;
+            deltaxinput.readOnly=true;
+            prob.appendChild(deltaxlabel);
+            prob.appendChild(deltaxinput);
+            prob.appendChild(linebreak.cloneNode(true));
+            let deltatlabel=document.createElement("label");
+            deltatlabel.innerHTML="Delta T: ";
+            let deltatinput=document.createElement("input");
+            deltatinput.id="deltat";
+            deltatinput.setAttribute("type", "text");
+            deltatinput.value=.85/100;
+            deltatinput.readOnly=true;
+            prob.appendChild(deltatlabel);
+            prob.appendChild(deltatinput);
+            prob.appendChild(linebreak.cloneNode(true));
+
+            let createBtn = document.createElement("button");                   //adding buttons and event listeners
+            createBtn.innerHTML = "Show Grid";
+            createBtn.addEventListener("click", fillTable);
+            prob.appendChild(createBtn);
+
+            let showResults = document.createElement("button");                   
+            showResults.innerHTML = "Show Results at T=.85";
+            showResults.addEventListener("click", fillResults);
+            prob.appendChild(showResults);
+
+            let graphBtn = document.createElement("button");
+            graphBtn.innerHTML="Show Graph of U numerical and U exact at T=.85";
+            graphBtn.addEventListener("click", showGraph);
+            prob.appendChild(graphBtn);
+
+            let graphBtn2 = document.createElement("button");
+            graphBtn2.innerHTML="Show Graph of Error T=.85";
+            graphBtn2.addEventListener("click", showError);
+            prob.appendChild(graphBtn2);
+            
+            let clearBtn = document.createElement("button");
+            clearBtn.innerHTML="Clear";
+            clearBtn.addEventListener("click", clear);
+            prob.appendChild(clearBtn);
+        }
+
+        function showError()                    //draws a graph of the absolute error, Math.abs(implicit - exact) at T=.85
+        {
+            clear();
+            let chartdiv=document.createElement("div");
+            chartdiv.id="chart_div";
+            let prob = document.getElementById("problem");
+            prob.appendChild(chartdiv);
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawErrorChart);
+        }
+
+        function drawErrorChart()               //helper function
+        {
+            let values=[];
+            values.push(["X", "Error"]);
+            
+            let maxError=0;
+            let xHighError=-1;
+            for(let i = 0; i<=400; i++)
+                {
+
+                    let error=Math.abs(grid[grid.length-1][i]-grid2[grid2.length-1][i])
+                    if(Math.abs(error)>maxError)
+                    {
+                        maxError=error;
+                        xHighError=i*deltax;
+                    }
+                    values.push([i*deltax, error]);
+                }
+            let errormsg= document.createElement("div");
+            errormsg.innerHTML="The Maximum Error is "+maxError+", located at x= "+xHighError;
+            errormsg.id="error";
+            document.getElementById("problem").appendChild(errormsg);
+
+            let data = google.visualization.arrayToDataTable(values);
+            let options = {
+            title: 'Error of Numerical Solution  at T=.85',
+            legend: {position: 'bottom'},
+            hAxis: {title: 'X'},
+            vAxis: {title: 'Error'},
+            };
+            let chart = new google.visualization.LineChart(document.getElementById("chart_div"));
+            chart.draw(data, options);
+        }
+
+        function showGraph()                    //draws a graph of the implicit and exact solutions at T=.85
+        {
+            clear();
+            let chartdiv=document.createElement("div");
+            chartdiv.id="chart_div";
+            let prob = document.getElementById("problem");
+            prob.appendChild(chartdiv);
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawChart);
+        }
+
+        function drawChart()                    //helper function
+        {
+            let values=[];
+            values.push(["X", "U numerical", "U exact"]);
+            
+            for(let i = 0; i<=400; i++)
+                values.push([i*deltax, grid[grid.length-1][i], grid2[grid2.length-1][i]]);
+            
+            let data = google.visualization.arrayToDataTable(values);
+            let options = {
+            title: 'Numerical and Exact Solutions to U at T=.85',
+            legend: {position: 'bottom'},
+            hAxis: {title: 'X'},
+            vAxis: {title: 'U'},
+            };
+            let chart = new google.visualization.LineChart(document.getElementById("chart_div"));
+            chart.draw(data, options);
+        }
+
+        function clear()                        //clears everything
+        {
+            if(document.getElementById("table"))
+                document.getElementById("table").remove();
+            if(document.getElementById("chart_div"))
+                document.getElementById("chart_div").remove();
+            if(document.getElementById("error"))
+                document.getElementById("error").remove();
+        }
+
+        function answer()                       // returns the exact solution
+        {
+            let grid2 = []
+            for(let n=0; n<timesteps+1; n++)    //time nodes
+            {
+                let b=[]
+                for(let i=0; i<xsteps+1; i++)   //x
+                    b.push(Math.exp(n*deltat-i*deltax));
+                grid2.push(b);
+            }
+            return grid2;
+        }
+
+        function generateAinv()                 //generates the inverse of the A matrix
+        {
+            let output=[];              
+            let row1=[];
+            row1.push(1);                       //first row is 1,0,0......
+            for(let i =1; i<xsteps; i++)        //fills first row with 0s
+                row1.push(0);
+            
+            output.push(row1);
+
+            let zeros=0;                        //keeps track of the number of 0s 
+            for(let i=1; i<xsteps-1; i++)       //adds rows to the matrix
+            {
+                let row=[];
+                for(let j = 0; j<zeros; j++)     //adds 0s to the rows
+                    row.push(0);
+                
+                zeros++;    
+                r=1/(2*deltax*deltax);
+                row.push(r);                    //adds the coefficients
+                row.push(-2*r-1/deltat);
+                row.push(r);
+                while(row.length<xsteps)        //fills the rest of the rows with 0s
+                    row.push(0);
+                
+                output.push(row);               //adds the row to the matrix
+            }
+            let lastrow=[];                     //last row of the matrix
+            while(lastrow.length<xsteps-2)
+                lastrow.push(0);
+            lastrow.push(1/(1+deltax));         //Boundry Condition
+            lastrow.push(-1);
+            output.push(lastrow);
+            
+            return math.inv(output);            //return the inverse of the matrix
+        }
+
+        function calculate()                    //calculates and stores the numerical solution
+        {
+            let grid=[];                        //2D array containing the values of U at all x and t
+            let current=[];                     //array containing the values of U at the current timestep
+            for(let i =0; i<xsteps; i++)        //initialize current to boundry condition U(x,0)=e^-x
+                current.push(Math.exp(-deltax*i));
+
+            grid.push(current);                 //adds the first row to the grid
+          
+            for(let n =0; n<timesteps; n++)     //iterate through all the timesteps
+            {    
+                let right = [];                 //array for the right vector
+                for(let i =0; i<xsteps; i++)    //loop that sets the values for the right vector 
+                {
+                    if(i==0)                    //x=0 boundry condition
+                        right.push(Math.exp((n+1)*deltat)); 
+                    else if (i == xsteps-1)     //x=10 boundry condition
+                        right.push(0);
+                    else        
+                    {
+                        temp1=current[i+1]*(1/(2*deltax)-1/(2*deltax*deltax));      //n timestep, U(i+1) term
+                        temp2=current[i]*(1-1/deltat+1/(deltax*deltax));            //n timestep, U(i) term
+                        temp3=current[i-1]*(-1/(2*deltax)-1/(2*deltax*deltax));     //n timestep, U(i-1) term
+                        right.push(temp1+temp2+temp3);          
+                    }
+                }
+                current = math.multiply(Ainv, right);  //calculates the value of U at the current timestep
+                grid.push(current);                //adds the values of U at the current timestep to the grid
+            }
+            return grid;
+        }
+
+        function fillResults()                  //creates a table and fills it with the exact and numerical solutions at t=.85
+        {
+            clear();
+            let prob = document.getElementById("problem");
+            let table = document.createElement("table");
+            table.id="table";
+
+            let firstrow= document.createElement("tr");
+            let xlabel=document.createElement("td");
+            xlabel.innerHTML="X Value";
+            xlabel.classList.add("legend");
+            firstrow.appendChild(xlabel);
+
+            let solutionlabel=document.createElement("td");
+            solutionlabel.innerHTML="Numerical Solution";
+            solutionlabel.classList.add("legend");
+            firstrow.appendChild(solutionlabel);
+
+            let exactsolutionlabel=document.createElement("td");
+            exactsolutionlabel.innerHTML="Exact Solution";
+            exactsolutionlabel.classList.add("legend");
+            firstrow.appendChild(exactsolutionlabel);
+
+            let errorlabel=document.createElement("td");
+            errorlabel.innerHTML="Error";
+            errorlabel.classList.add("legend");
+            firstrow.appendChild(errorlabel);
+
+            table.appendChild(firstrow);
+
+            for(let i=0; i<grid[grid.length-1].length-1; i++)
+            {
+                let row= document.createElement("tr");
+                let xval=document.createElement("td");
+                xval.innerHTML=(i*deltax).toFixed(3);
+                let nsolu=document.createElement("td");
+                nsolu.innerHTML=(grid[grid.length-1][i]).toFixed(7);
+                let exactsolu=document.createElement("td");
+                exactsolu.innerHTML=(grid2[grid2.length-1][i]).toFixed(7);
+                let error=document.createElement("td");
+                error.innerHTML=(Math.abs(grid2[grid2.length-1][i]-grid[grid.length-1][i])).toFixed(10);
+                row.appendChild(xval);
+                row.appendChild(nsolu);
+                row.appendChild(exactsolu);
+                row.appendChild(error);
+                table.appendChild(row);
+            }
+            prob.appendChild(table);
+        }
+
+        function fillTable()                    //creates a table and fills table with the implcit solution 
+        {
+            clear();
+            let prob = document.getElementById("problem");
+          
+            let table = document.createElement("table");
+            table.id="table";
+
+            let firstrow= document.createElement("tr");
+            let blank = document.createElement("td");
+            blank.innerHTML=" ";
+            firstrow.appendChild(blank);
+            
+            let xlabel=document.createElement("td");
+            xlabel.innerHTML="X Value";
+            xlabel.classList.add("legend");
+            firstrow.appendChild(xlabel);
+
+            let secondrow = document.createElement("tr");
+            let timelabel=document.createElement("td");
+            timelabel.innerHTML="Time";
+            timelabel.classList.add("legend");
+            secondrow.appendChild(timelabel);
+            let nodelabel=document.createElement("td");
+            nodelabel.innerHTML="Node";
+            nodelabel.classList.add("legend");
+            secondrow.appendChild(nodelabel);
+
+            for(i=0; i<grid[0].length-1; i++)
+            {
+                let temp=document.createElement("td");
+                let temp2=document.createElement("td");
+                temp.innerHTML=(i*deltax).toFixed(3);
+                temp2.innerHTML=i;
+                temp.classList.add("legend");
+                temp2.classList.add("legend");
+                firstrow.appendChild(temp);
+                secondrow.appendChild(temp2);
+            }
+            table.appendChild(firstrow);
+            table.appendChild(secondrow);
+
+            for(a=0; a<grid.length; a=a+1)
+            {    
+                let row= document.createElement("tr");
+                let time=document.createElement("td");
+                time.innerHTML= (a*deltat).toFixed(3);
+                time.classList.add("legend");
+                let timenode=document.createElement("td");
+                timenode.innerHTML=a;
+                timenode.classList.add("legend");
+                row.appendChild(time);
+                row.appendChild(timenode);
+                for(b=0; b<grid[a].length-1; b++)
+                {
+                    let xBox=document.createElement("td");
+                    xBox.innerHTML=(grid[a][b]).toFixed(4);
+                    row.appendChild(xBox);
+                }
+                table.appendChild(row);
+            }
+            prob.appendChild(table);
+        }
+
+    </script>
+</html>
