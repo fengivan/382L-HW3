@@ -1,0 +1,79 @@
+<html>
+    <head>
+        <meta charset = "utf-8">
+        <title> HW3 Part 1</title>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.1/math.js></script>
+        <style>
+            table, th, td 
+            {
+                border: 2px solid black;
+            }
+            .legend
+            {
+                font-weight:bold;
+            }
+            table 
+            {
+                width: 25%;
+                border-collapse: collapse;
+            }
+            #chart_div
+            {
+                width:1600px;
+                height:1000px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="problem">  </div>
+    </body>
+
+    <script>
+      
+        let a=  [0,1,2,2,2,1];
+        let b=  [5,7,8,5,8,5];
+        let c = [0,3,2,4,2,3];
+        let d = [100,200,300,400,500,600];
+
+        console.log(thomasalgo(a,b,c,d,a.length));
+
+       
+        function thomasalgo(a, b, c, d, n)
+        {
+            
+            let cprime=[];
+            let dprime=[];
+            console.log(cprime);
+            console.log(dprime);
+            for(let i =0; i<n; i++)
+            {
+                if(i==0)
+                {   
+                    cprime.push(c[i]/b[i]);
+                    dprime.push(d[i]/b[i]);
+                }
+                else
+                {
+                    if(i!=n)
+                        cprime.push(c[i]/(b[i]-a[i]*cprime[i-1]));
+                    dprime.push((d[i]-a[i]*dprime[i-1])/(b[i]-a[i]*cprime[i-1]));
+                }
+            }
+            let xsol=[];
+            for(let i=0; i<n; i++)
+            {
+                xsol.push(0);
+            }
+            xsol[n-1]=dprime[n-1];
+            for(let i=n-2; i>=0; i--)
+            {
+                xsol[i]=dprime[i]-cprime[i]*xsol[i+1];
+            }
+            return xsol;
+        }
+
+
+    </script>
+</html>

@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset = "utf-8">
-        <title> HW3 Part 1</title>
+        <title> HW3 Part 2</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/8.1.1/math.js></script>
         <style>
@@ -37,22 +37,18 @@
         let deltat=parseFloat(document.getElementById("deltat").value);
         let timesteps=Math.round(.85/deltat);
         let xsteps=Math.round(10/deltax);
-        let Ainv=generateAinv();                //generates the inverse of the matrix
-        let grid=calculate();                   //calculates the implicit solution and stores it in grid
-        let grid2=answer();                     //gets the exact solution and stores it in grid2
+                       
+        let grid=numeric();                   //calculates the numeric solution and stores it in grid
+        let grid2=exact();                     //gets the exact solution and stores it in grid2
         
         function init()                         //initalizes elements
         {
             let linebreak = document.createElement("br");
             let prob = document.getElementById("problem");
-
             let probDescription = document.createElement("div");
             probDescription.innerHTML="Solution to differential equation using Crank-Nicolson method and one point backwards difference for du/dx";
             prob.appendChild(probDescription);
             prob.appendChild(linebreak.cloneNode(true));
-
-        
-
             let deltaxlabel=document.createElement("label");                //adding text desciriptions 
             deltaxlabel.innerHTML="Delta X: ";
             let deltaxinput=document.createElement("input");
@@ -73,34 +69,29 @@
             prob.appendChild(deltatlabel);
             prob.appendChild(deltatinput);
             prob.appendChild(linebreak.cloneNode(true));
-
             let createBtn = document.createElement("button");                   //adding buttons and event listeners
             createBtn.innerHTML = "Show Grid";
             createBtn.addEventListener("click", fillTable);
             prob.appendChild(createBtn);
-
             let showResults = document.createElement("button");                   
             showResults.innerHTML = "Show Results at T=.85";
             showResults.addEventListener("click", fillResults);
             prob.appendChild(showResults);
-
             let graphBtn = document.createElement("button");
             graphBtn.innerHTML="Show Graph of U numerical and U exact at T=.85";
             graphBtn.addEventListener("click", showGraph);
             prob.appendChild(graphBtn);
-
             let graphBtn2 = document.createElement("button");
             graphBtn2.innerHTML="Show Graph of Error T=.85";
             graphBtn2.addEventListener("click", showError);
             prob.appendChild(graphBtn2);
-            
             let clearBtn = document.createElement("button");
             clearBtn.innerHTML="Clear";
             clearBtn.addEventListener("click", clear);
             prob.appendChild(clearBtn);
         }
 
-        function showError()                    //draws a graph of the absolute error, Math.abs(implicit - exact) at T=.85
+        function showError()                    //draws a graph of the absolute error, Math.abs(numeric - exact) at T=.85
         {
             clear();
             let chartdiv=document.createElement("div");
@@ -120,7 +111,6 @@
             let xHighError=-1;
             for(let i = 0; i<=400; i++)
                 {
-
                     let error=Math.abs(grid[grid.length-1][i]-grid2[grid2.length-1][i])
                     if(Math.abs(error)>maxError)
                     {
@@ -145,7 +135,7 @@
             chart.draw(data, options);
         }
 
-        function showGraph()                    //draws a graph of the implicit and exact solutions at T=.85
+        function showGraph()                    //draws a graph of the numeric and exact solutions at T=.85
         {
             clear();
             let chartdiv=document.createElement("div");
@@ -185,12 +175,12 @@
                 document.getElementById("error").remove();
         }
 
-        function answer()                       // returns the exact solution
+        function exact()                       // returns the exact solution
         {
-            let grid2 = []
+            let grid2 = [];
             for(let n=0; n<timesteps+1; n++)    //time nodes
             {
-                let b=[]
+                let b=[];
                 for(let i=0; i<xsteps+1; i++)   //x
                     b.push(Math.exp(n*deltat-i*deltax));
                 grid2.push(b);
@@ -198,61 +188,71 @@
             return grid2;
         }
 
-        function generateAinv()                 //generates the inverse of the A matrix
+        function solvematrix(x)                 //solves for U at the next timestep, given U at the current timestep
         {
-            let output=[];              
-            let row1=[];
-            row1.push(1);                       //first row is 1,0,0......
-            for(let i =1; i<xsteps+1; i++)        //fills first row with 0s
-                row1.push(0);
-            
-            output.push(row1);
-
-            let zeros=0;                        //keeps track of the number of 0s 
-            for(let i=1; i<xsteps; i++)       //adds rows to the matrix
+            let c = [0];                        //create arrays for the 3 diagonals
+            let b = [1];
+            let a=  [0];
+            for(let i =1; i<x.length; i++)
             {
-                let row=[];
-                for(let j = 0; j<zeros; j++)     //adds 0s to the rows
-                    row.push(0);
-                
-                zeros++;    
-                r=1/(2*deltax*deltax);
-                row.push(r);                    //adds the coefficients
-                row.push(-2*r-1/deltat);
-                row.push(r);
-                while(row.length<xsteps+1)        //fills the rest of the rows with 0s
-                    row.push(0);
-                
-                output.push(row);               //adds the row to the matrix
+                c.push(1/(2*deltax*deltax));              //tridiagonal matrix coefficients 
+                b.push((-1/deltat)-1/(deltax*deltax));
+                a.push(1/(2*deltax*deltax));
+                if(i==x.length-1)
+                    {
+                        a[i]=1/(1+deltax);      //boundry condition
+                        b[i]=-1;
+                    }
             }
-            let lastrow=[];                     //last row of the matrix
-            while(lastrow.length<xsteps-1)
-                lastrow.push(0);
-            lastrow.push(1/(1+deltax));         //Boundry Condition
-            lastrow.push(-1);
-            output.push(lastrow);
-            
-            console.log(output);
-            return math.inv(output);            //return the inverse of the matrix
+            return thomasalgo(a, b, c, x, x.length);    //calls the thomas algorithm tridiagonal matrix solver and returns the solution
         }
 
-        function calculate()                    //calculates and stores the numerical solution
+        function thomasalgo(a, b, c, d, n)
         {
-            let grid=[];                        //2D array containing the values of U at all x and t
-            let current=[];                     //array containing the values of U at the current timestep
-            for(let i =0; i<xsteps+1; i++)        //initialize current to boundry condition U(x,0)=e^-x
+            let cprime=[];
+            let dprime=[];
+            for(let i =0; i<n; i++)
+            {
+                if(i==0)
+                {   
+                    cprime.push(c[i]/b[i]);
+                    dprime.push(d[i]/b[i]);
+                }
+                else
+                {
+                    if(i!=n)
+                        cprime.push(c[i]/(b[i]-a[i]*cprime[i-1]));
+                    dprime.push((d[i]-a[i]*dprime[i-1])/(b[i]-a[i]*cprime[i-1]));
+                }
+            }
+            let xsol=[];
+            for(let i=0; i<n; i++)
+                xsol.push(0);
+            
+            xsol[n-1]=dprime[n-1];
+            for(let i=n-2; i>=0; i--)
+                xsol[i]=dprime[i]-cprime[i]*xsol[i+1];
+            
+            return xsol;
+        }
+
+        function numeric()                          //calculates and stores the numerical solution
+        {
+            let grid=[];                            //2D array containing the values of U at all x and t
+            let current=[];                         //array containing the values of U at the current timestep
+            for(let i =0; i<xsteps+1; i++)          //initialize current to boundry condition U(x,0)=e^-x
                 current.push(Math.exp(-deltax*i));
 
-            grid.push(current);                 //adds the first row to the grid
+            grid.push(current);                     //adds the first row to the grid
           
-            for(let n =0; n<timesteps; n++)     //iterate through all the timesteps
+            for(let n =0; n<timesteps; n++)         //iterate through all the timesteps
             {    
-                let right = [];                 //array for the right vector
-                for(let i =0; i<xsteps+1; i++)    //loop that sets the values for the right vector 
+                let right = [];                     //array for the right vector
+                for(let i =0; i<xsteps+1; i++)      //loop that sets the values for the right vector 
                 {
-                    if(i==0)                    //x=0 boundry condition
+                    if(i==0)                        //x=0 boundry condition
                         right.push(Math.exp((n+1)*deltat)); 
-                    else if (i == xsteps)     //x=10 boundry condition
+                    else if (i == xsteps)           //x=10 boundry condition
                         right.push(0);
                     else        
                     {
@@ -262,13 +262,13 @@
                         right.push(temp1+temp2+temp3);       
                     }
                 }
-                current = math.multiply(Ainv, right);  //calculates the value of U at the current timestep
-                grid.push(current);                //adds the values of U at the current timestep to the grid
+                current = solvematrix(right);       //calculates the value of U at the current timestep
+                grid.push(current);                 //adds the values of U at the current timestep to the grid
             }
             return grid;
         }
 
-        function fillResults()                  //creates a table and fills it with the exact and numerical solutions at t=.85
+        function fillResults()                      //creates a table and fills it with the exact and numerical solutions at t=.85
         {
             clear();
             let prob = document.getElementById("problem");
@@ -318,7 +318,7 @@
             prob.appendChild(table);
         }
 
-        function fillTable()                    //creates a table and fills table with the implcit solution 
+        function fillTable()                    //creates a table and fills table with the numeric solution 
         {
             clear();
             let prob = document.getElementById("problem");
